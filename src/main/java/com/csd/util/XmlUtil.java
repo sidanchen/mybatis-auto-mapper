@@ -11,7 +11,7 @@ import java.lang.reflect.Field;
 
 /**
  * xml工具类 该工具类用于生成xml文件
- * Created by sdc on 2018/4/20.
+ * Created by sdc on 2018/4/20.c
  */
 public class XmlUtil {
 
