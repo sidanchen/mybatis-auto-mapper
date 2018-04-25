@@ -16,7 +16,7 @@ public class ClassNameUtil {
     public static String className = "";
     public static Field[] fields;
     public static String tableName = "";
-
+    public static String instanceName;
 
     public static void init(String allClassName1) throws ClassNotFoundException {
         //设置全类名
@@ -26,6 +26,7 @@ public class ClassNameUtil {
         //设置属性
         fields = Class.forName(allClassName).getDeclaredFields();
         tableName = propertyToColumns(className);
+        instanceName = classNameConvert(className);
     }
 
 
@@ -67,6 +68,23 @@ public class ClassNameUtil {
             }
         }
         return myClassName;
+    }
+
+    /**
+     * 将类名转换为普通实体命名
+     * @param className
+     * @return
+     */
+    public static String classNameConvert(String className){
+        StringBuffer sb = new StringBuffer();
+        char[] cs = className.toCharArray();
+        if(cs.length > 0){
+            cs[0] += 32;
+        }
+        for(char c:cs){
+            sb.append(c);
+        }
+        return sb.toString();
     }
 
 

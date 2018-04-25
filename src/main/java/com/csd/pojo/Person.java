@@ -4,15 +4,15 @@ package com.csd.pojo;
  * Created by sdc on 2018/4/20.
  */
 public class Person {
-    private String id;
+    private int id;
     private String name;
     private String userName;
 
-    public String getId() {
+    public int getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(int id) {
         this.id = id;
     }
 

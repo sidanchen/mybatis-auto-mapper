@@ -59,6 +59,12 @@ public class XmlUtil {
         insert();
         //生成delete
         delete();
+        //生成update
+        update();
+        //生成findByPage
+        findByPage();
+        //生成count
+        count();
         String mapperName = ClassNameUtil.className + "Mapper.xml";
         write(new FileUtil().getXmlName(mapperName));
     }
@@ -103,7 +109,7 @@ public class XmlUtil {
         insert.addAttribute("parameterType", ClassNameUtil.allClassName);
 
         String sql = "";
-        sql = "insert into" + ClassNameUtil.tableName + "(";
+        sql = "insert into " + ClassNameUtil.tableName + "(";
         //拼接列名
         for (int i = 0; i < ClassNameUtil.fields.length; i++) {
             if (i == ClassNameUtil.fields.length - 1) {
@@ -144,9 +150,8 @@ public class XmlUtil {
         String sql = "update " + ClassNameUtil.tableName;
 
         update.setText(sql);
+
         Element ife = null;
-        String ifText = "";
-        String conditioin = "";
         String type = "";
         String columnName = "";
 
@@ -155,7 +160,7 @@ public class XmlUtil {
         Element set = update.addElement("set");
 
         for(Field f:ClassNameUtil.fields){
-            columnName = ClassNameUtil.propertyToColumns(columnName);
+            columnName = ClassNameUtil.propertyToColumns(f.getName());
             if(i == 0){
                 i++;
                 continue;
@@ -163,19 +168,15 @@ public class XmlUtil {
 
             ife = set.addElement("if");
             type = f.getGenericType().toString();
-            if("class java.lang.String".equals(type) || "class java.util.Date".equals(type)){
-                conditioin = f.getName() + "!= null";
-                ifText = columnName + "#{" + f.getName() + "}";
-                setUpdateIf(ife,conditioin,ifText);
-            }else if("class java.lang.Integer".equals(type) || "class java.lang.Double".equals(type)){
-                conditioin = f.getName() + "!= 0";
-                ifText = columnName + "#{" + f.getName() + "}";
-                setUpdateIf(ife,conditioin,ifText);
-            }
+            ifIsType(type,f,columnName,ife);
         }
 
-
-
+        //设置where条件
+        Element where = update.addElement("where");
+        Element wif = where.addElement("if");
+        Field f_0 = ClassNameUtil.fields[0];
+        columnName = ClassNameUtil.propertyToColumns(f_0.getName());
+        ifIsType(f_0.getGenericType().toString(),f_0,columnName,wif);
     }
 
     /**
@@ -189,6 +190,52 @@ public class XmlUtil {
         ife.setText(ifText);
     }
 
+    /**
+     * 通用设置if节点的方法
+     * @param type
+     * @param f
+     * @param columnName
+     * @param ife
+     */
+    public void ifIsType(String type,Field f,String columnName,Element ife){
+        String conditioin = "";
+        String ifText = "";
+        if("class java.lang.String".equals(type) || "class java.util.Date".equals(type)){
+            conditioin = f.getName() + "!= null and " + f.getName() + "! = ''";
+            ifText = columnName + "=#{" + f.getName() + "},";
+            setUpdateIf(ife,conditioin,ifText);
+        }else if("class java.lang.Integer".equals(type) || "class java.lang.Double".equals(type) || "int".equals(type) || "double".equals(type) || "float".equals(type)){
+            conditioin = f.getName() + "!= 0";
+            ifText = columnName + "=#{" + f.getName() + "},";
+            setUpdateIf(ife,conditioin,ifText);
+        }
+    }
+
+    /**
+     * 设置findbypage方法where条件中的if条件
+     * @param type 字段类型
+     * @param f 字段
+     * @param columnName 列名
+     * @param ife if节点
+     */
+    public void findByPageIfIsType(String type,Field f,String columnName,Element ife){
+        String conditioin = "";
+        String ifText = "";
+        if("class java.lang.String".equals(type) ){
+            conditioin = ClassNameUtil.instanceName + "." + f.getName() + "!= null";
+            ifText = "and " + columnName + " like CONCAT(CONCAT('%',#{"+ClassNameUtil.instanceName+"." + f.getName() + "}),'%')";
+            setUpdateIf(ife,conditioin,ifText);
+        }else if("class java.lang.Integer".equals(type) || "class java.lang.Double".equals(type) || "int".equals(type) || "double".equals(type) || "float".equals(type)){
+            conditioin = ClassNameUtil.instanceName + "." + f.getName() + "!= 0";
+            ifText = "and " + columnName + " =#{"+ClassNameUtil.instanceName+"." + f.getName() + "}";
+            setUpdateIf(ife,conditioin,ifText);
+        }else if("class java.util.Date".equals(type)){
+            conditioin = ClassNameUtil.instanceName + "." + f.getName() + "!= null";
+            ifText = "and " + columnName + " =#{"+ClassNameUtil.instanceName+"." + f.getName() + "}";
+            setUpdateIf(ife,conditioin,ifText);
+        }
+    }
+
 
 
     private void findAll() {
@@ -199,18 +246,63 @@ public class XmlUtil {
 
     }
 
-    private void findByPage() {
 
+    private void findByPage() {
+        Element select = root.addElement("select");
+        //设置id
+        select.addAttribute("id","findByPage");
+        //设置resultMap
+        select.addAttribute("resultMap","BaseRM");
+        String sql = "select * from " + ClassNameUtil.tableName;
+        select.setText(sql);
+        Element where = select.addElement("where");
+
+        String columnName = "";
+        String condition = "";
+        String ifText = "";
+        Element ife = null;
+        String type = "";
+        //设置where条件
+        for(Field f:ClassNameUtil.fields){
+            ife = where.addElement("if");
+            columnName = ClassNameUtil.propertyToColumns(f.getName());
+            type = f.getGenericType().toString();
+            findByPageIfIsType(type,f,columnName,ife);
+        }
+
+        //设置 order
+        Element oif = select.addElement("if");
+        condition = "shortName != null and shortName != '' and shortOrder != null and shortOrder != ''";
+        ifText = "order by ${shortName} ${shortOrder}";
+        setUpdateIf(oif,condition,ifText);
+
+        //设置limit
+        select.addText("limit #{startRow},#{showNumber}");
     }
 
     public void count() {
+        Element select = root.addElement("select");
+        select.addAttribute("id","count");
+        select.addAttribute("resultType","int");
 
+
+        String sql = "select count(*) from " + ClassNameUtil.tableName;
+        select.setText(sql);
+        String type = "";
+        String columnName = "";
+        Element ife = null;
+        for(Field f:ClassNameUtil.fields){
+            ife = select.addElement("if");
+            type = f.getGenericType().toString();
+            columnName = ClassNameUtil.propertyToColumns(f.getName());
+            findByPageIfIsType(type,f,columnName,ife);
+        }
     }
 
 
     public static void main(String[] args) throws ClassNotFoundException {
         Class c = Class.forName("com.csd.pojo.Person");
         Field[] f =  c.getDeclaredFields();
-        System.out.println((Object)f[0].getType() instanceof String);
+        System.out.println(f[0].getGenericType().toString());
     }
 }
