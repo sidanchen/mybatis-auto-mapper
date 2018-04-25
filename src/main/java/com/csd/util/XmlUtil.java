@@ -136,7 +136,7 @@ public class XmlUtil {
     private void delete() {
         Element delete = root.addElement("delete");
         delete.addAttribute("id", "delete");
-        String sql = "delete from " + ClassNameUtil.tableName +" "+ ClassNameUtil.propertyToColumns(ClassNameUtil.fields[0].getName()) + "=#{id}";
+        String sql = "delete from " + ClassNameUtil.tableName +" where "+ ClassNameUtil.propertyToColumns(ClassNameUtil.fields[0].getName()) + "=#{id}";
         delete.setText(sql);
     }
 
